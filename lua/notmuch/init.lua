@@ -1269,6 +1269,7 @@ end
 function M.message_count_properties(message, key)
 	local count  = ffi.new("unsigned int[1]")
 	local ret = nm.notmuch_message_count_properties(message, key, count[0])
+	result(ret)
 	return count[0]
 end
 
