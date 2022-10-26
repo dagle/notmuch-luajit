@@ -1,2 +1,2 @@
 # notmuch-lua
-luajit binding for notmuch
+luajit binding for notmuch using luajits ffi bindings.
