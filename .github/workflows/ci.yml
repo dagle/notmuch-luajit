@@ -35,8 +35,9 @@ jobs:
           sudo luarocks install busted
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Test
         run: |
           export LUA_PATH="lua_modules/share/lua/5.1/?.lua;lua_modules/share/lua/5.1/?/init.lua;$LUA_PATH;"
+          cd $GITHUB_WORKSPACE
           luarocks build
           luajit test.lua
