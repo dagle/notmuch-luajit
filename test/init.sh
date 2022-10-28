@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 ## setup test data
 TEST_ROOT=$(dirname "$0")
 TEST_ROOT=$(realpath ${TEST_ROOT})
+echo $TEST_ROOT
 TMP_DIRECTORY="${TEST_ROOT}/testdir"
 
 

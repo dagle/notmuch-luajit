@@ -1,4 +1,3 @@
-require 'busted.runner'()
 local nm = require("notmuch.db")
 
 local function collect_keys(t)

@@ -1,5 +1,3 @@
-require 'busted.runner'()
-
 -- local nm = require("lua.notmuch.db")
 local nm = require("notmuch.db")
 local filename = ""
