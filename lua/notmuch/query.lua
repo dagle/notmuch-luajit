@@ -18,10 +18,10 @@ function M:get_string()
 	return nm.query_get_string(self.query)
 end
 
-function M:get_db()
+-- function M:get_db()
 	--- TODO, this doesn't return a db class object
 	-- return nm.query_get_db(self.query)
-end
+-- end
 
 function M:set_omit(exclude)
 	return nm.set_omit(self.query, exclude)

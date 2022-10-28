@@ -12,9 +12,9 @@ function M:new(messsage)
 	return this
 end
 
-function M:get_db()
-	--- TODO
-end
+-- function M:get_db()
+-- 	TODO
+-- end
 
 function M:id()
 	return nm.message_get_id(self.message)

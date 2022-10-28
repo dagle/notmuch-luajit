@@ -1,5 +1,4 @@
 local nm = require("notmuch")
-local u = require("notmuch.util")
 
 local M = {}
 function M:new(directory)

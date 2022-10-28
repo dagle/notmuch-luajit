@@ -108,7 +108,7 @@ ffi.cdef([[
 			    const char *backup_path,
 			    notmuch_compact_status_cb_t status_cb,
 			    void *closure);
-			
+
 	notmuch_status_t
 	notmuch_database_destroy (notmuch_database_t *database);
 
@@ -220,7 +220,7 @@ ffi.cdef([[
 
 	void
 	notmuch_threads_destroy (notmuch_threads_t *threads);
-	
+
 	notmuch_status_t
 	notmuch_query_count_messages (notmuch_query_t *query, unsigned int *count);
 
@@ -809,6 +809,7 @@ local function message_iterator(messages)
 		if nm.notmuch_messages_valid(messages) == 1 then
 			local message = nm.notmuch_messages_get(messages)
 			nm.notmuch_messages_move_to_next(messages)
+			-- return ffi.gc(message, nm.notmuch_message_destroy)
 			return message
 		end
 	end
@@ -958,6 +959,7 @@ end
 --- @param tag string tag to exclude
 function M.query_add_tag_exclude(query, tag)
 	result(nm.notmuch_query_add_tag_exclude(query, tag))
+	-- nm.notmuch_query_add_tag_exclude(query, tag)
 end
 
 --- @param query notmuch.Query

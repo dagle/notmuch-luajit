@@ -1,5 +1,5 @@
 local nm = require("notmuch")
-local c = require("notmuch.conf")
+-- local c = require("notmuch.conf")
 local query = require("notmuch.query")
 local directory = require("notmuch.directory")
 local message = require("notmuch.message")
@@ -8,7 +8,7 @@ local M = {}
 function M:new(db)
 	local this = {
 		db = db,
-		conf = c:new()
+		-- conf = c:new()
 	}
 	self.__index = self
 	setmetatable(this, self)
@@ -85,11 +85,11 @@ function M:repon(mode)
 end
 
 function M:create_query(str)
-	return query.new(nm.create_query(self.db, str))
+	return query:new(nm.create_query(self.db, str))
 end
 
 function M:create_query_with_syntax(str, syntax)
-	return query.new(nm.create_query_with_syntax(self.db, str, syntax))
+	return query:new(nm.create_query_with_syntax(self.db, str, syntax))
 end
 
 return M
