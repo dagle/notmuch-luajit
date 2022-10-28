@@ -1,0 +1,526 @@
+M.db_create()                                                      *M.db_create*
+     @param path string path to the new database
+     @param destroy? boolean
+     @return notmuch.Db
+
+
+M.db_create_with_config()                              *M.db_create_with_config*
+     @param path string path to the new database
+     @param mode number Read/write mode. 0 for r and 1 for rw.
+     @param conf_path string path to the config
+     @param profile string name of the profile in the config
+     @param destroy? boolean
+     @return notmuch.Db
+
+
+M.db_open()                                                          *M.db_open*
+     @param path string directory where the Notmuch database is stored.
+     @param mode number Read/write mode. 0 for r and 1 for rw.
+     @param destroy? boolean
+     @return notmuch.Db
+
+
+M.db_open_with_config()                                  *M.db_open_with_config*
+     @param path string path to the database
+     @param mode number Read/write mode. 0 for r and 1 for rw.
+     @param conf_path string path to the config
+     @param profile string name of the profile in the config
+     @param destroy? boolean
+     @return notmuch.Db
+
+
+M.db_open_with_config_raw()                          *M.db_open_with_config_raw*
+     If you want to handle closing/destroying the db manually, because using the garbage collector
+     to close the db isn't to your satisfaction.
+     @param path string path to the database
+     @param mode number Read/write mode. 0 for r and 1 for rw.
+     @param conf_path string path to the config
+     @param profile string name of the profile in the config
+     @return notmuch.Db
+
+
+M.db_load_config()                                            *M.db_load_config*
+     @param path string path to the new database
+     @param conf_path string path to the config
+     @param profile string name of the profile in the config
+     @param destroy? boolean
+     @return notmuch.Db
+
+
+M.db_status_string()                                        *M.db_status_string*
+     @param db notmuch.Db
+     @return string
+
+
+M.db_close()                                                        *M.db_close*
+     @param db notmuch.Db
+
+
+M.db_destroy()                                                    *M.db_destroy*
+
+
+M.db_compact()                                                    *M.db_compact*
+     @param path string path to db
+     @param backup string where to backup
+     @param fun fun(message: string, arg: any)
+     @param arg any agrement passed to fun
+
+
+M.db_compact_db()                                              *M.db_compact_db*
+     @param db notmuch.Db
+     @param backup string where to backup
+     @param fun fun(message: string, arg: any)
+     @param arg any agrement passed to fun
+
+
+M.db_get_path()                                                  *M.db_get_path*
+     @param db notmuch.Db
+     @return string
+
+
+M.db_get_version()                                            *M.db_get_version*
+     @param db notmuch.Db
+     @return number
+
+
+M.db_needs_upgrade()                                        *M.db_needs_upgrade*
+     @param db notmuch.Db
+     @return boolean
+
+
+M.db_upgrade()                                                    *M.db_upgrade*
+     @param db notmuch.Db
+     @param progress_func fun(closure: any, progress: any)
+     @param arg any
+
+
+M.db_atomic_begin()                                          *M.db_atomic_begin*
+     @param db notmuch.Db
+
+
+M.db_atomic_end()                                              *M.db_atomic_end*
+     @param db notmuch.Db
+
+
+M.get_revision()                                                *M.get_revision*
+     @param db notmuch.Db
+     @return string
+
+
+M.db_get_directory()                                        *M.db_get_directory*
+     @param db notmuch.Db
+     @param path string
+     @return notmuch.Directory
+
+
+M.db_index_file()                                              *M.db_index_file*
+     @param db notmuch.Db
+     @param filename string
+     @param opts notmuch.Indexopts?
+     @return notmuch.Message
+
+
+M.db_remove_message()                                      *M.db_remove_message*
+     @param db notmuch.Db
+     @param filename string
+
+
+M.db_find_message()                                          *M.db_find_message*
+     @param db notmuch.Db
+     @param mid string message id
+     @return notmuch.Message
+
+
+M.db_find_message_by_filename()                  *M.db_find_message_by_filename*
+     @param db notmuch.Db
+     @param filename string
+     @return notmuch.Message
+
+
+M.db_get_all_tags()                                          *M.db_get_all_tags*
+     @param db notmuch.Db
+     @return fun():string
+
+
+M.db_reopen()                                                      *M.db_reopen*
+     @param db notmuch.Db
+     @param mode number Read/write mode. 0 for r and 1 for rw.
+
+
+M.create_query()                                                *M.create_query*
+     @param db notmuch.Db
+     @param query_string string
+     @return notmuch.Query
+
+
+M.create_query_with_syntax()                        *M.create_query_with_syntax*
+     @param db notmuch.Db
+     @param query_string string
+     @syntax syntax number 0 for xpian, 1 for sexp
+     @return notmuch.Query
+
+
+M.query_get_string()                                        *M.query_get_string*
+     @param query notmuch.Query
+     @return string
+
+
+M.query_get_db()                                                *M.query_get_db*
+     @param query notmuch.Query
+     @return notmuch.Db
+
+
+M.query_set_omit()                                            *M.query_set_omit*
+     @param query notmuch.Query
+     @param exclude string (flag, true, false, all)
+
+
+M.query_set_sort()                                            *M.query_set_sort*
+     @param query notmuch.Query
+     @param sort string (oldest, newest, message-id, unsort)
+
+
+M.query_get_sort()                                            *M.query_get_sort*
+     @param query notmuch.Query
+     @return number (oldest, newest, message_id, unsort)
+
+
+M.query_add_tag_exclude()                              *M.query_add_tag_exclude*
+     @param query notmuch.Query
+     @param tag string tag to exclude
+
+
+M.query_get_threads()                                      *M.query_get_threads*
+     @param query notmuch.Query
+     @return fun():notmuch.Thread
+
+
+M.query_get_messages()                                    *M.query_get_messages*
+     @param query notmuch.Query
+     @return fun():notmuch.Message
+
+
+M.query_count_threads()                                  *M.query_count_threads*
+     @param query notmuch.Query
+     @return number
+
+
+M.query_count_messages()                                *M.query_count_messages*
+     @param query notmuch.Query
+     @return number
+
+
+M.thread_get_id()                                              *M.thread_get_id*
+     @param thread notmuch.Thread
+     @return string
+
+
+M.thread_get_total_messages()                      *M.thread_get_total_messages*
+     @param thread notmuch.Thread
+     @return number
+
+
+M.thread_get_total_files()                            *M.thread_get_total_files*
+     @param thread notmuch.Thread
+     @return number
+
+
+M.thread_get_toplevel_messages()                *M.thread_get_toplevel_messages*
+     @param thread notmuch.Thread
+     @return fun():notmuch.Message
+
+
+M.thread_get_messages()                                  *M.thread_get_messages*
+     @param thread notmuch.Thread
+     @return fun():notmuch.Message
+
+
+M.thread_get_matched_messages()                  *M.thread_get_matched_messages*
+     @param thread notmuch.Thread
+     @return number
+
+
+M.thread_get_authors()                                    *M.thread_get_authors*
+     @param thread notmuch.Thread
+     @return string
+
+
+M.thread_get_subject()                                    *M.thread_get_subject*
+     @param thread notmuch.Thread
+     @return string
+
+
+M.thread_get_oldest_date()                            *M.thread_get_oldest_date*
+     @param thread notmuch.Thread
+     @return number
+
+
+M.thread_get_newest_date()                            *M.thread_get_newest_date*
+     @param thread notmuch.Thread
+     @return number
+
+
+M.thread_get_tags()                                          *M.thread_get_tags*
+     @param thread notmuch.Thread
+     @return fun():string
+
+
+M.messages_collect_tags()                              *M.messages_collect_tags*
+     @param query notmuch.Query
+     @return fun():string
+
+
+M.message_get_db()                                            *M.message_get_db*
+     @param message notmuch.Message
+     @return object db
+
+
+M.message_get_id()                                            *M.message_get_id*
+     @param message notmuch.Message
+     @return string id
+
+
+M.message_get_thread_id()                              *M.message_get_thread_id*
+     @param message notmuch.Message
+     @return string id
+
+
+M.message_get_replies()                                  *M.message_get_replies*
+     @param message notmuch.Message
+     @return fun():notmuch.Message
+
+
+M.message_count_files()                                  *M.message_count_files*
+     @param message notmuch.Message
+     @return number
+
+
+M.message_get_filename()                                *M.message_get_filename*
+     @param message notmuch.Message
+     @return string
+
+
+M.message_get_filenames()                              *M.message_get_filenames*
+     @param message gmime.Message
+     @return fun():string
+
+
+M.message_reindex()                                          *M.message_reindex*
+     @param message notmuch.Message
+     @param indexopts? notmuch.Indexopts
+
+
+M.message_get_flag()                                        *M.message_get_flag*
+     @param message notmuch.Message
+     @param flag number
+     @return boolean flag
+
+
+M.message_set_flag()                                        *M.message_set_flag*
+     @param message notmuch.Message
+     @param flag number
+     @param value boolean
+
+
+M.message_get_date()                                        *M.message_get_date*
+     @param message notmuch.Message
+     @return number
+
+
+M.message_get_header()                                    *M.message_get_header*
+     @param message notmuch.Message
+     @param header string
+     @return string
+
+
+M.message_get_tags()                                        *M.message_get_tags*
+     @param message notmuch.Message
+     @return fun(): string
+
+
+M.message_add_tag()                                          *M.message_add_tag*
+     @param message notmuch.Message
+     @param tag string
+
+
+M.message_remove_tag()                                    *M.message_remove_tag*
+     @param message notmuch.Message
+     @param tag string
+
+
+M.message_remove_all_tags()                          *M.message_remove_all_tags*
+     @param message notmuch.Message
+
+
+M.message_maildir_flags_to_tags()              *M.message_maildir_flags_to_tags*
+     @param message notmuch.Message
+
+
+M.message_has_maildir_flag()                        *M.message_has_maildir_flag*
+     @param message notmuch.Message
+     @param flag string
+     @return boolean
+
+
+M.message_tags_to_maildir_flags()              *M.message_tags_to_maildir_flags*
+     @param message notmuch.Message
+
+
+M.message_freeze()                                            *M.message_freeze*
+     @param message notmuch.Message
+
+
+M.message_thaw()                                                *M.message_thaw*
+     @param message notmuch.Message
+
+
+M.message_get_property()                                *M.message_get_property*
+     @param message notmuch.Message
+     @param key string
+     @return string
+
+
+M.message_add_property()                                *M.message_add_property*
+     @param message notmuch.Message
+     @param key string
+     @param value string
+
+
+M.message_remove_properety()                        *M.message_remove_properety*
+     @param message notmuch.Message
+     @param key string
+     @param value string
+
+
+M.message_remove_all_properties()              *M.message_remove_all_properties*
+     @param message notmuch.Message
+     @param key string
+
+
+M.message_remove_all_properties_with_prefix()
+     @param message notmuch.Message
+     @param prefix string
+
+
+M.message_get_properties()                            *M.message_get_properties*
+     @param message notmuch.Message
+     @param key string
+     @param exact boolean
+     @return fun(): string, string
+
+
+M.message_count_properties()                        *M.message_count_properties*
+     @param message notmuch.Message
+     @param key string
+     @return number
+
+
+M.directory_set_mtime()                                  *M.directory_set_mtime*
+     @param directory notmuch.Directory
+     @param time object
+
+
+M.directory_get_mtime()                                  *M.directory_get_mtime*
+     @param directory notmuch.Directory
+     @preturn time object
+
+
+M.directry_get_child_files()                        *M.directry_get_child_files*
+     @param directory notmuch.Directory
+     @return notmuch.Filenames
+
+
+M.directory_get_child_directories()          *M.directory_get_child_directories*
+     @param directory notmuch.Directory
+     @return notmuch.Filenames
+
+
+M.directory_delete()                                        *M.directory_delete*
+     @param directory notmuch.Directory
+
+
+M.db_set_config()                                              *M.db_set_config*
+     @param db notmuch.Db
+     @param key string
+     @param value string
+
+
+M.db_get_conf()                                                  *M.db_get_conf*
+     @param db notmuch.Db
+     @param key string
+     @return string value
+
+
+M.db_get_conf_list()                                        *M.db_get_conf_list*
+     @param db notmuch.Db
+     @param prefix string
+     @return fun():string
+
+
+M.config_get()                                                    *M.config_get*
+     @param db notmuch.Db
+     @param key object
+     @return string
+
+
+M.config_set()                                                    *M.config_set*
+     @param db notmuch.Db
+     @param key object
+     @param value string
+
+
+M.config_get_values()                                      *M.config_get_values*
+     @param db notmuch.Db
+     @param key string
+     @return fun():string
+
+
+M.config_get_values_string()                        *M.config_get_values_string*
+     @param db notmuch.Db
+     @param key string
+     @return fun():string
+
+
+M.config_get_pairs()                                        *M.config_get_pairs*
+     @param db notmuch.Db
+     @param prefix string
+     @return fun():string, string
+
+
+M.config_get_bool()                                          *M.config_get_bool*
+     @param db notmuch.Db
+     @param key object
+     @return boolean
+
+
+M.config_path()                                                  *M.config_path*
+     @param db notmuch.Db
+     @return string
+
+
+M.db_get_default_indexopts()                        *M.db_get_default_indexopts*
+     @param db notmuch.Db
+     @return object
+
+
+M.indexopts_set_decrypt_policy()                *M.indexopts_set_decrypt_policy*
+     @param indexopts object
+     @param decrypt_pol string (true, no, nostash)
+
+
+M.indexopts_get_decrypt_policy()                *M.indexopts_get_decrypt_policy*
+     @param indexopts object
+     @return number decryption_policy
+
+
+M.built_with()                                                    *M.built_with*
+     @param name string
+     @return boolean
+
+
+M.make_indexopts()                                            *M.make_indexopts*
+     @param decrypt_pol string (true, no, nostash)
+     @return object
+
+
+vim:tw=78:ts=8:noet:ft=help:norl:
