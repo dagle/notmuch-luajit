@@ -1,5 +1,5 @@
 local nm = require "notmuch"
--- local c = require("notmuch.conf")
+local c = require("notmuch.conf")
 local query = require "notmuch.query"
 local directory = require "notmuch.directory"
 local message = require "notmuch.message"
@@ -8,7 +8,7 @@ local M = {}
 function M:new(db)
   local this = {
     db = db,
-    -- conf = c:new()
+    conf = c:new(db)
   }
   self.__index = self
   setmetatable(this, self)
@@ -61,7 +61,7 @@ function M:get_directory(path)
 end
 
 function M:index_file(filename, opts)
-  return nm.db_index_file(self.db, filename, opts)
+  return message:new(nm.db_index_file(self.db, filename, opts))
 end
 
 function M:remove_message(filename)
@@ -80,7 +80,7 @@ function M:get_all_tags()
   return nm.db_get_all_tags(self.db)
 end
 
-function M:repon(mode)
+function M:reopen(mode)
   return nm.db_reopen(self.db, mode)
 end
 
@@ -91,5 +91,18 @@ end
 function M:create_query_with_syntax(str, syntax)
   return query:new(nm.create_query_with_syntax(self.db, str, syntax))
 end
+
+function M:conf_iter()
+  return nm.db_get_conf_list(self.db, '')
+end
+
+function M:conf_len()
+  local i = 0
+  for _ in self:conf_iter() do
+    i = i + 1
+  end
+  return i
+end
+
 
 return M

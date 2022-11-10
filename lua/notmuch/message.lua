@@ -109,6 +109,7 @@ function M:remove_all_properties_with_prefix(prefix)
 end
 
 function M:get_properties(key, exact)
+  exact = exact or false
   return nm.message_get_properties(self.message, key, exact)
 end
 

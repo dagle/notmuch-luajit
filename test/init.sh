@@ -22,7 +22,7 @@ export NOTMUCH_CONFIG="${NOTMUCHDIR}/notmuch-config"
 
 cat <<EOF >"${NOTMUCH_CONFIG}"
 [database]
-path=${MAIL_DIR}
+path=${MAIL_DIR}/testmail
 hook_dir=${NOTMUCHDIR}
 
 [user]

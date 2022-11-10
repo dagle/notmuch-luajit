@@ -568,15 +568,14 @@ function M.db_create(path, destroy)
 end
 
 --- @param path string path to the new database
---- @param mode number Read/write mode. 0 for r and 1 for rw.
 --- @param conf_path string path to the config
 --- @param profile string name of the profile in the config
 --- @param destroy? boolean
 --- @return notmuch.Db
-function M.db_create_with_config(path, mode, conf_path, profile, destroy)
-  local db = ffi.new "notmuch_databales_t*[1]"
+function M.db_create_with_config(path, conf_path, profile, destroy)
+  local db = ffi.new "notmuch_database_t*[1]"
   local err = ffi.new "char*[1]"
-  local res = nm.notmuch_database_create_with_config(path, mode, conf_path, profile, db, err)
+  local res = nm.notmuch_database_create_with_config(path, conf_path, profile, db, err)
   result_str(res, err)
   if destroy then
     return ffi.gc(db[0], nm.notmuch_database_destroy)
@@ -841,7 +840,7 @@ local function property_iterator(properties)
     if nm.notmuch_message_properties_valid(properties) == 1 then
       local key = safestr(nm.notmuch_message_properties_key(properties))
       local value = safestr(nm.notmuch_message_properties_value(properties))
-      nm.notmuch_tags_move_to_next(properties)
+      nm.notmuch_message_properties_move_to_next(properties)
       return key, value
     end
   end
@@ -931,6 +930,12 @@ function M.query_set_omit(query, exclude)
   nm.notmuch_query_set_omit_excluded(query, flag)
 end
 
+local sorttbl = {
+  oldest = nm.NOTMUCH_SORT_OLDEST_FIRST,
+  newest = nm.NOTMUCH_SORT_NEWEST_FIRST,
+  ["message-id"] =nm.NOTMUCH_SORT_MESSAGE_ID,
+  unsorted = nm.NOTMUCH_SORT_UNSORTED,
+}
 --- @param query notmuch.Query
 --- @param sort string (oldest, newest, message-id, unsort)
 function M.query_set_sort(query, sort)
@@ -950,9 +955,18 @@ function M.query_set_sort(query, sort)
 end
 
 --- @param query notmuch.Query
---- @return number (oldest, newest, message_id, unsort)
+--- @return string
 function M.query_get_sort(query)
-  return nm.notmuch_query_get_sort(query)
+  local sort = nm.notmuch_query_get_sort(query)
+  if sort == nm.NOTMUCH_SORT_OLDEST_FIRST then
+    return "oldest"
+  elseif sort == nm.NOTMUCH_SORT_NEWEST_FIRST then
+    return "newest"
+  elseif sort == nm.NOTMUCH_SORT_MESSAGE_ID then
+    return "message-id"
+  elseif sort == nm.NOTMUCH_SORT_UNSORTED then
+    return "unsorted"
+  end
 end
 
 --- @param query notmuch.Query
@@ -1079,7 +1093,7 @@ function M.messages_collect_tags(query)
     nm.notmuch_messages_destroy(messages[0])
     nm.notmuch_tags_destroy(tags)
   end
-  local tags = ffi.gc(nm.notmuch_messages_collect_tags(messages), cleanup)
+  local tags = ffi.gc(nm.notmuch_messages_collect_tags(messages[0]), cleanup)
   return tag_iterator(tags)
 end
 
@@ -1270,9 +1284,9 @@ end
 --- @return number
 function M.message_count_properties(message, key)
   local count = ffi.new "unsigned int[1]"
-  local ret = nm.notmuch_message_count_properties(message, key, count[0])
+  local ret = nm.notmuch_message_count_properties(message, key, count)
   result(ret)
-  return count[0]
+  return tonumber(count[0])
 end
 
 --- @param directory notmuch.Directory
@@ -1309,7 +1323,9 @@ end
 --- @param db notmuch.Db
 --- @param key string
 --- @param value string
-function M.db_set_config(db, key, value)
+function M.db_set_conf(db, key, value)
+  -- local apa = nm.notmuch_database_set_config(db, key, value)
+  -- print(apa)
   result(nm.notmuch_database_set_config(db, key, value))
 end
 
@@ -1317,10 +1333,10 @@ end
 --- @param key string
 --- @return string value
 function M.db_get_conf(db, key)
-  local value = ffi.new "char*[1]"
+  local value = ffi.new("char*[1]")
   local res = nm.notmuch_database_get_config(db, key, value)
   result(res)
-  return safestr(value[1])
+  return safestr(value[0])
 end
 
 --- @param db notmuch.Db

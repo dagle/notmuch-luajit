@@ -31,37 +31,41 @@ describe("Count a query", function ()
 		for _ in query:get_threads() do
 			i = i + 1
 		end
-		assert(num == i, string.format("Values not equal: %d - %d", num, i))
+		assert.equal(num, i)
 	end)
-	-- it("count messages", function ()
-	-- 	local query = db:create_query("tag:inbox")
-	-- 	local num = query:count_messages()
-	-- 	local i = 0
-	-- 	for _ in query:get_messages() do
-	-- 		i = i + 1
-	-- 	end
-	-- 	assert(num == i, string.format("Values not equal: %d - %d", num, i))
-	-- end)
-	-- it("collect tags", function ()
-	-- 	local tags = {}
-	--
-	-- 	local query = db:create_query("tag:inbox")
-	-- 	for tag in query:collect_tags() do
-	-- 		tags[tag] = true
-	-- 	end
-	-- 	local mtags = {}
-	-- 	for message in query:get_messages() do
-	-- 		for tag in message:get_tags() do
-	-- 			mtags[tag] = true
-	-- 		end
-	-- 	end
-	-- 	assert(equal(tags, mtags))
-	-- end)
-	-- it("sort", function ()
-	-- 	local db = nm.db_open(nil, 0, nil, nil)
-	-- 	local query = db:create_query("tag:inbox")
-	-- 	local sort = "newest"
-	-- 	query:set_sort(sort)
-	-- 	assert(sort == query:get_sort())
-	-- end)
+	it("count messages", function ()
+		local query = db:create_query("tag:inbox")
+		local num = query:count_messages()
+		local i = 0
+		for _ in query:get_messages() do
+			i = i + 1
+		end
+		assert.equal(num, i)
+	end)
+	it("collect tags", function ()
+		local tags = {}
+
+		local query = db:create_query("tag:inbox")
+		for tag in query:collect_tags() do
+			tags[tag] = true
+		end
+		local mtags = {}
+		for message in query:get_messages() do
+			for tag in message:get_tags() do
+				mtags[tag] = true
+			end
+		end
+		assert(equal(tags, mtags), "tags not equal")
+	end)
 end)
+
+describe("Reorder a list", function ()
+	it("sort", function ()
+		local db = nm.db_open(nil, 0, nil, nil)
+		local query = db:create_query("tag:inbox")
+		local sort = "newest"
+		query:set_sort(sort)
+		assert.equal(sort, query:get_sort())
+	end)
+end)
+
