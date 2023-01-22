@@ -9,6 +9,8 @@
 -- iterator syntax to go over it. The iterators are not stateless,
 -- because no iterator in notmuch is stateless.
 
+-- TODO: map notmuch_config_key_t to strings
+
 local M = {}
 
 local ffi = require "ffi"
@@ -730,9 +732,8 @@ end
 --- @return string
 function M.get_revision(db)
   local uuid = ffi.new "const char*[1]"
-  local res = nm.notmuch_database_get_revision(db, uuid)
-  result(res)
-  return ffi.string(uuid)
+  local rev = nm.notmuch_database_get_revision(db, uuid)
+  return rev, ffi.string(uuid)
 end
 
 --- @param db notmuch.Db
@@ -808,7 +809,6 @@ local function message_iterator(messages)
     if nm.notmuch_messages_valid(messages) == 1 then
       local message = nm.notmuch_messages_get(messages)
       nm.notmuch_messages_move_to_next(messages)
-      -- return ffi.gc(message, nm.notmuch_message_destroy)
       return message
     end
   end
@@ -924,7 +924,7 @@ function M.query_set_omit(query, exclude)
   elseif exclude == "all" then
     flag = 3
   else
-    assert(false, "query_set_omit got a bad flag")
+    error("query_set_omit got a bad flag")
   end
 
   nm.notmuch_query_set_omit_excluded(query, flag)
@@ -949,7 +949,7 @@ function M.query_set_sort(query, sort)
   elseif sort == nil or sort == "unsorted" then
     sortint = nm.NOTMUCH_SORT_UNSORTED
   else
-    assert(false, "Can't find sorting algorithm")
+    error("Can't find sorting algorithm")
   end
   nm.notmuch_query_set_sort(query, sortint)
 end
@@ -973,7 +973,6 @@ end
 --- @param tag string tag to exclude
 function M.query_add_tag_exclude(query, tag)
   result(nm.notmuch_query_add_tag_exclude(query, tag))
-  -- nm.notmuch_query_add_tag_exclude(query, tag)
 end
 
 --- @param query notmuch.Query
@@ -1155,7 +1154,7 @@ end
 --- @return boolean flag
 function M.message_get_flag(message, flag)
   local is_set = ffi.new "notmuch_bool_t[1]"
-  local res = nm.notmuch_message_get_flag_st(message, flag, is_set) ~= 0
+  local res = nm.notmuch_message_get_flag_st(message, flag, is_set)
   result(res)
   return is_set[0] ~= 0
 end
@@ -1324,8 +1323,6 @@ end
 --- @param key string
 --- @param value string
 function M.db_set_conf(db, key, value)
-  -- local apa = nm.notmuch_database_set_config(db, key, value)
-  -- print(apa)
   result(nm.notmuch_database_set_config(db, key, value))
 end
 
@@ -1410,13 +1407,15 @@ function M.db_get_default_indexopts(db)
 end
 
 --- @param indexopts object
---- @param decrypt_pol string (true, no, nostash)
+--- @param decrypt_pol string (false, true, auto, nostash)
 function M.indexopts_set_decrypt_policy(indexopts, decrypt_pol)
-  local decrypt = 2
-  if decrypt_pol == "true" then
-    decrypt = 1
-  elseif decrypt_pol == "no" then
+  local decrypt = 0
+  if decrypt_pol == "false" then
     decrypt = 0
+  elseif decrypt_pol == "true" then
+    decrypt = 1
+  elseif decrypt_pol == "auto" then
+    decrypt = 2
   elseif decrypt_pol == "nostash" then
     decrypt = 3
   end
