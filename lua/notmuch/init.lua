@@ -1403,7 +1403,7 @@ end
 --- @param db notmuch.Db
 --- @return object
 function M.db_get_default_indexopts(db)
-  return nm.notmuch_database_get_default_indexopts(db)
+  return ffi.gc(nm.notmuch_database_get_default_indexopts(db), nm.notmuch_indexopts_destroy)
 end
 
 --- @param indexopts object
@@ -1432,14 +1432,6 @@ end
 --- @return boolean
 function M.built_with(name)
   return nm.notmuch_built_with(name)
-end
-
---- @param decrypt_pol string (true, no, nostash)
---- @return object
-function M.make_indexopts(decrypt_pol)
-  local ret = ffi.new "notmuch_indexopts_t[1]"
-  M.indexopts_set_decrypt_policy(ret, decrypt_pol)
-  return ret
 end
 
 return M

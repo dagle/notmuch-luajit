@@ -14,6 +14,7 @@
 #define luaL_nm_query(L, n) *(notmuch_query_t **)luaL_checkudata(L, n, "nm_query")
 #define luaL_nm_thread(L, n) *(notmuch_thread_t **)luaL_checkudata(L, n, "nm_thread")
 #define luaL_nm_message(L, n) *(notmuch_message_t **)luaL_checkudata(L, n, "nm_message")
+#define luaL_nm_opts(L, n) *(notmuch_indexopts_t **)luaL_checkudata(L, n, "nm_opts")
 
 #define luaL_nm_newuserdata(type, var) 	notmuch_ ## type ## _t ** type ## ptr = (notmuch_ ## type ## _t **)lua_newuserdata(L, sizeof(notmuch_ ## type ## _t *)); \
 	* type ## ptr = var; \
@@ -23,7 +24,6 @@
 #define result(res) \
 	if (res) { \
 		luaL_error(L, "%s", notmuch_status_to_string(res));\
-		return 1;\
 	}
 
 static int tag_iterator(lua_State *L);
@@ -233,7 +233,7 @@ static int db_index_file(lua_State *L) {
 
 	db = luaL_nm_db(L, 1);
 	filename = luaL_checkstring(L, 2);
-	indexopts = lua_touserdata(L, 3);
+	indexopts = luaL_nm_opts(L, 3);
 
 	int res = notmuch_database_index_file (db, filename,
 					 indexopts, &message);
@@ -295,6 +295,10 @@ static int db_get_all_tags(lua_State *L) {
 	db = luaL_nm_db(L, 1);
 	tags = notmuch_database_get_all_tags(db);
 	lua_pushlightuserdata(L, tags);
+
+	lua_pushlightuserdata(L, tags);
+	lua_pushcclosure(L, &tag_iterator, 1);
+
 	return 1;
 }
 
@@ -470,6 +474,7 @@ static int query_get_threads(lua_State *L) {
 	result(res);
 
 	lua_pushlightuserdata(L, threads);
+	lua_pushcclosure(L, &thread_iterator, 1);
 
 	return 1;
 }
@@ -527,7 +532,7 @@ static int filename_iterator(lua_State *L) {
 	filenames = lua_touserdata(L, lua_upvalueindex(1));
 
 	if (notmuch_filenames_valid(filenames)) {
-		filename = notmuch_tags_get(filenames);
+		filename = notmuch_filenames_get(filenames);
 		notmuch_filenames_move_to_next(filenames);
 		lua_pushstring(L, filename);
 
@@ -562,7 +567,7 @@ static int property_iterator(lua_State *L) {
 
 	props = lua_touserdata(L, lua_upvalueindex(1));
 
-	if (notmuch_config_list_valid_valid(props)) {
+	if (notmuch_message_properties_valid(props)) {
 		key = notmuch_message_properties_key(props);
 		value = notmuch_message_properties_value(props);
 		notmuch_message_properties_move_to_next(props);
@@ -612,13 +617,13 @@ static int value_iterator(lua_State *L) {
 
 static int query_get_messages(lua_State *L) {
 	notmuch_query_t *q;
-	notmuch_messages_t *messes;
+	notmuch_messages_t *messages;
 
 	q = luaL_nm_query(L, 1);
-	int res = notmuch_query_search_messages(q, &messes);
+	int res = notmuch_query_search_messages(q, &messages);
 	result(res);
 
-	lua_pushlightuserdata(L, messes);
+	lua_pushlightuserdata(L, messages);
 	lua_pushcclosure(L, &message_iterator, 1);
 
 	return 1;
@@ -626,7 +631,7 @@ static int query_get_messages(lua_State *L) {
 
 static int query_count_threads(lua_State *L) {
 	notmuch_query_t *q;
-	int count;
+	unsigned int count;
 
 	q = luaL_nm_query(L, 1);
 	int res = notmuch_query_count_threads(q, &count);
@@ -639,7 +644,7 @@ static int query_count_threads(lua_State *L) {
 
 static int query_count_messages(lua_State *L) {
 	notmuch_query_t *q;
-	int count;
+	unsigned int count;
 
 	q = luaL_nm_query(L, 1);
 	int res = notmuch_query_count_messages(q, &count);
@@ -694,14 +699,28 @@ static int thread_get_total_files(lua_State *L) {
 
 static int thread_get_toplevel_messages(lua_State *L) {
 	notmuch_thread_t *thread;
+	notmuch_messages_t *messages;
 
 	thread = luaL_nm_thread(L, 1);
+	messages = notmuch_thread_get_toplevel_messages(thread);
+
+	lua_pushlightuserdata(L, messages);
+	lua_pushcclosure(L, &message_iterator, 1);
+
+	return 1;
 }
 
 static int thread_get_messages(lua_State *L) {
 	notmuch_thread_t *thread;
+	notmuch_messages_t *messages;
 
-	thread = lua_touserdata(L, 1);
+	thread = luaL_nm_thread(L, 1);
+	messages = notmuch_thread_get_messages(thread);
+
+	lua_pushlightuserdata(L, messages);
+	lua_pushcclosure(L, &message_iterator, 1);
+
+	return 1;
 }
 
 static int thread_get_matched_messages(lua_State *L) {
@@ -763,15 +782,30 @@ static int thread_get_newest_date(lua_State *L) {
 
 static int thread_get_tags(lua_State *L) {
 	notmuch_thread_t *thread;
+	notmuch_tags_t *tags;
 
 	thread = luaL_nm_thread(L, 1);
 
-	// lua_pushstring(L, date);
+	tags = notmuch_thread_get_tags(thread);
+
+	lua_pushlightuserdata(L, tags);
+	lua_pushcclosure(L, &tag_iterator, 1);
 
 	return 1;
 }
 
 static int messages_collect_tags(lua_State *L) {
+	notmuch_messages_t *messages;
+	notmuch_tags_t *tags;
+
+	messages = lua_touserdata(L, lua_upvalueindex(1));
+
+	tags = notmuch_messages_collect_tags(messages);
+
+	lua_pushlightuserdata(L, tags);
+	lua_pushcclosure(L, &tag_iterator, 1);
+
+	return 1;
 }
 
 static int messages_destroy(lua_State *L) {
@@ -830,8 +864,13 @@ static int message_get_message_id(lua_State *L) {
 
 static int message_get_replies(lua_State *L) {
 	notmuch_message_t *message;
+	notmuch_messages_t *messages;
 
 	message = luaL_nm_message(L, 1);
+	messages = notmuch_message_get_replies(message);
+
+	lua_pushlightuserdata(L, messages);
+	lua_pushcclosure(L, &message_iterator, 1);
 
 	return 1;
 }
@@ -861,18 +900,36 @@ static int message_get_filename(lua_State *L) {
 
 static int message_get_filenames(lua_State *L) {
 	notmuch_message_t *message;
+	notmuch_filenames_t *filenames;
 
 	message = luaL_nm_message(L, 1);
+	filenames = notmuch_message_get_filenames(message);
+	
+	lua_pushlightuserdata(L, filenames);
+	lua_pushcclosure(L, &filename_iterator, 1);
 
 	return 1;
 }
 
 static int message_reindex(lua_State *L) {
+	notmuch_message_t *message;
+	notmuch_indexopts_t *opts;
+
+	message = luaL_nm_message(L, 1);
+	opts = luaL_nm_opts(L,2);
+
+	int res = notmuch_message_reindex(message, opts);
+	result(res);
+
+	return 0;
 }
 
-/// TODO: FIX
-static int luaL_checkbool(lua_State *L, int index) {
-	return lua_toboolean(L, index);
+static notmuch_bool_t luaL_checkbool(lua_State *L, int index) {
+	if (lua_isboolean( L, index )) {
+		return lua_toboolean(L, index);
+	}
+	luaL_error(L, "Function expected a bool as argument #%d", index);
+	return 0;
 }
 
 static int message_get_flag(lua_State *L) {
@@ -930,9 +987,16 @@ static int message_get_header(lua_State *L) {
 
 static int message_get_tags(lua_State *L) {
 	notmuch_message_t *message;
+	notmuch_tags_t *tags;
 
 	message = luaL_nm_message(L, 1);
 
+	tags = notmuch_message_get_tags(message);
+
+	lua_pushlightuserdata(L, tags);
+	lua_pushcclosure(L, &tag_iterator, 1);
+
+	return 1;
 }
 
 static int message_add_tag(lua_State *L) {
@@ -1082,30 +1146,56 @@ static int message_remove_all_properties(lua_State *L) {
 
 static int message_remove_all_properties_with_prefix(lua_State *L) {
 	notmuch_message_t *message;
+	const char *prefix;
 
 	message = luaL_nm_message(L, 1);
+	prefix = luaL_checkstring(L, 2);
+	int res = notmuch_message_remove_all_properties_with_prefix(message, prefix);
+	result(res);
+
+	return 0;
 }
 
 static int message_get_properties(lua_State *L) {
 	notmuch_message_t *message;
+	notmuch_message_properties_t *props;
+	const char *key;
+	notmuch_bool_t exact;
 
 	message = luaL_nm_message(L, 1);
+	key = luaL_checkstring(L, 2);
+	exact = luaL_checkbool(L, 3);
+
+	props = notmuch_message_get_properties(message, key, exact);
+
+	lua_pushlightuserdata(L, props);
+	lua_pushcclosure(L, &property_iterator, 1);
+	
+	return 1;
 }
 
 static int message_count_properties(lua_State *L) {
 	notmuch_message_t *message;
+	const char *key;
+	unsigned int count;
 
 	message = luaL_nm_message(L, 1);
+	key = luaL_checkstring(L, 2);
+
+	notmuch_message_count_properties(message, key, &count);
+	lua_pushnumber(L, count);
+
+	return 1;
 }
 
 static int directory_set_mtime(lua_State *L) {
 	notmuch_directory_t *dir;
-	time_t *mtime;
+	time_t mtime;
 
 	dir = lua_touserdata(L, 1);
-	// TODO: get mtime
+	mtime = luaL_checknumber(L, 2);
 
-	int res = notmuch_directory_set_mtime(dir, *mtime);
+	int res = notmuch_directory_set_mtime(dir, mtime);
 	result(res);
 
 	return 0;
@@ -1118,7 +1208,7 @@ static int directory_get_mtime(lua_State *L) {
 	dir = lua_touserdata(L, 1);
 
 	mtime = notmuch_directory_get_mtime(dir);
-	// TODO: set mtime
+	lua_pushnumber(L, mtime);
 
 	return 1;
 }
@@ -1131,6 +1221,7 @@ static int directry_get_child_files(lua_State *L) {
 	files = notmuch_directory_get_child_files(dir);
 
 	lua_pushlightuserdata(L, files);
+	lua_pushcclosure(L, &filename_iterator, 1);
 
 	return 1;
 }
@@ -1143,6 +1234,7 @@ static int directory_get_child_directories(lua_State *L) {
 	files = notmuch_directory_get_child_directories(dir);
 
 	lua_pushlightuserdata(L, files);
+	lua_pushcclosure(L, &filename_iterator, 1);
 
 	return 1;
 }
@@ -1201,6 +1293,7 @@ static int db_get_conf_list(lua_State *L) {
 	result(res);
 
 	lua_pushlightuserdata(L, out);
+	lua_pushcclosure(L, &config_list_iterator, 1);
 	
 	return 1;
 }
@@ -1235,15 +1328,48 @@ static int config_set(lua_State *L) {
 }
 
 static int config_get_values(lua_State *L) {
-	// notmuch_config_get_values
+	notmuch_database_t *db;
+	notmuch_config_key_t key;
+	notmuch_config_values_t *values;
+
+	db = lua_touserdata(L, 1);
+	key = (notmuch_config_key_t) luaL_checknumber(L, 2);
+	values = notmuch_config_get_values(db, key);
+
+	lua_pushlightuserdata(L, values);
+	lua_pushcclosure(L, &value_iterator, 1);
+
+	return 1;
 }
 
 static int config_get_values_string(lua_State *L) {
-	// notmuch_config_get_values_string
+	notmuch_database_t *db;
+	const char *key;
+	notmuch_config_values_t *values;
+
+	db = lua_touserdata(L, 1);
+	key =  luaL_checkstring(L, 2);
+	values = notmuch_config_get_values_string(db, key);
+
+	lua_pushlightuserdata(L, values);
+	lua_pushcclosure(L, &value_iterator, 1);
+
+	return 1;
 }
 
 static int config_get_pairs(lua_State *L) {
-	// notmuch_config_get_pairs
+	notmuch_database_t *db;
+	const char *prefix;
+	notmuch_config_pairs_t *pairs;
+
+	db = luaL_nm_db(L, 1);
+	prefix = luaL_checkstring(L, 2);
+	pairs = notmuch_config_get_pairs(db, prefix);
+
+	lua_pushlightuserdata(L, pairs);
+	lua_pushcclosure(L, &pair_iterator, 1);
+
+	return 1;
 }
 
 static int config_get_bool(lua_State *L) {
@@ -1279,7 +1405,7 @@ static int db_get_default_indexopts(lua_State *L) {
 	db = lua_touserdata(L, 1);
 	opts = notmuch_database_get_default_indexopts(db);
 
-	lua_pushlightuserdata(L, opts);
+	luaL_nm_newuserdata(indexopts, opts);
 	
 	return 1;
 }
@@ -1288,7 +1414,7 @@ static int indexopts_set_decrypt_policy(lua_State *L) {
 	notmuch_indexopts_t *opts;
 	notmuch_decryption_policy_t policy;
 
-	opts = lua_touserdata(L, 1);
+	opts = luaL_nm_opts(L, 1);
 	policy = (notmuch_decryption_policy_t) luaL_checknumber(L, 2);
 	int res = notmuch_indexopts_set_decrypt_policy(opts, policy);
 	result(res);
@@ -1308,6 +1434,15 @@ static int indexopts_get_decrypt_policy(lua_State *L) {
 	return 1;
 }
 
+static int indexopts_destroy(lua_State *L) {
+	notmuch_indexopts_t *opts;
+
+	opts = luaL_nm_opts(L, 1);
+	notmuch_indexopts_destroy(opts);
+
+	return 0;
+}
+
 static int built_with(lua_State *L) {
 	const char *name;
 	notmuch_bool_t b;
@@ -1322,13 +1457,12 @@ static int built_with(lua_State *L) {
 }
 
 // static int make_indexopts(lua_State *L) {
-// 	notmuch_indexopts_t *opts; // TODO: allocate this
+// 	notmuch_indexopts_t *opts;
 // 	notmuch_decryption_policy_t policy;
 //
+// 	opts = lua_newuserdata(L, sizeof(notmuch_indexopts_t));
 // 	policy = (notmuch_decryption_policy_t) luaL_checknumber(L, 2);
 // 	notmuch_indexopts_set_decrypt_policy(opts, policy);
-//
-// 	lua_pushlightuserdata(L, opts);
 //
 // 	return 1;
 // }
@@ -1361,6 +1495,8 @@ struct luaL_Reg nm_db[] =
 	{"reopen", db_reopen},
 	{"create_query", create_query},
 	{"create_query_with_syntax", create_query_with_syntax},
+	{""},
+	{"get_default_indexopts", db_get_default_indexopts},
 	{ NULL, NULL }
 };
 
@@ -1432,9 +1568,17 @@ struct luaL_Reg nm_message[] =
 	{ NULL, NULL }
 };
 
+
 struct luaL_Reg nm_messages[] =
 {
 	{"__gc", messages_destroy },
+};
+
+struct luaL_Reg nm_indexopts[] = 
+{
+	{"__gc", indexopts_destroy },
+	{"set_decrypt_policy", indexopts_set_decrypt_policy },
+	{"get_decrypt_policy", indexopts_get_decrypt_policy },
 };
 
 void register_metatable(lua_State *L, luaL_Reg *reg, const char *s) {
@@ -1449,6 +1593,7 @@ int luaopen_notmuch2(lua_State *L){
 	register_metatable(L, nm_query, "nm_query");
 	register_metatable(L, nm_thread, "nm_thread");
 	register_metatable(L, nm_message, "nm_message");
+	register_metatable(L, nm_indexopts, "nm_opts");
 	register_metatable(L, nm_messages, "nm_messages");
 
 	lua_newtable (L);
