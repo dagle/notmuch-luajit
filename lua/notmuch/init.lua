@@ -729,7 +729,7 @@ function M.db_atomic_end(db)
 end
 
 --- @param db notmuch.Db
---- @return string
+--- @return number, string
 function M.get_revision(db)
   local uuid = ffi.new "const char*[1]"
   local rev = nm.notmuch_database_get_revision(db, uuid)
@@ -911,24 +911,32 @@ function M.query_get_db(query)
   return nm.notmuch_query_get_database(query)
 end
 
+local function table_invert(t)
+   local s={}
+   for k,v in pairs(t) do
+     s[v]=k
+   end
+   return s
+end
+
+local omittbl = {
+  flag = 0,
+  ["true"] = 1,
+  ["false"] = 2,
+  ["all"] = 3,
+}
+
 --- @param query notmuch.Query
 --- @param exclude string (flag, true, false, all)
 function M.query_set_omit(query, exclude)
-  local flag
-  if exclude == "flag" then
-    flag = 0
-  elseif exclude == "true" then
-    flag = 1
-  elseif exclude == "false" then
-    flag = 2
-  elseif exclude == "all" then
-    flag = 3
+  local flag = omittbl[exclude]
+  if flag then
+    nm.notmuch_query_set_omit_excluded(query, flag)
   else
-    error("query_set_omit got a bad flag")
+    error(string.format("Query omit flag %s doesn't exist", exclude))
   end
-
-  nm.notmuch_query_set_omit_excluded(query, flag)
 end
+
 
 local sorttbl = {
   oldest = nm.NOTMUCH_SORT_OLDEST_FIRST,
@@ -939,34 +947,21 @@ local sorttbl = {
 --- @param query notmuch.Query
 --- @param sort string (oldest, newest, message-id, unsort)
 function M.query_set_sort(query, sort)
-  local sortint
-  if sort == "oldest" then
-    sortint = nm.NOTMUCH_SORT_OLDEST_FIRST
-  elseif sort == "newest" then
-    sortint = nm.NOTMUCH_SORT_NEWEST_FIRST
-  elseif sort == "message-id" then
-    sortint = nm.NOTMUCH_SORT_MESSAGE_ID
-  elseif sort == nil or sort == "unsorted" then
-    sortint = nm.NOTMUCH_SORT_UNSORTED
+  local sortint = sorttbl[sort]
+  if sortint then
+    nm.notmuch_query_set_sort(query, sortint)
   else
-    error("Can't find sorting algorithm")
+    error(string.format("Query sort algorithm %s doesn't exist", sort))
   end
-  nm.notmuch_query_set_sort(query, sortint)
 end
 
+local sorttbl_rev = table_invert(sorttbl)
+
 --- @param query notmuch.Query
---- @return string
+--- @return string?
 function M.query_get_sort(query)
   local sort = nm.notmuch_query_get_sort(query)
-  if sort == nm.NOTMUCH_SORT_OLDEST_FIRST then
-    return "oldest"
-  elseif sort == nm.NOTMUCH_SORT_NEWEST_FIRST then
-    return "newest"
-  elseif sort == nm.NOTMUCH_SORT_MESSAGE_ID then
-    return "message-id"
-  elseif sort == nm.NOTMUCH_SORT_UNSORTED then
-    return "unsorted"
-  end
+  return sorttbl_rev[sort]
 end
 
 --- @param query notmuch.Query
@@ -1134,7 +1129,7 @@ function M.message_get_filename(message)
   return safestr(filename)
 end
 
---- @param message gmime.Message
+--- @param message notmuch.Message
 --- @return fun():string
 function M.message_get_filenames(message)
   local filenames = ffi.gc(nm.notmuch_message_get_filenames(message), nm.notmuch_filenames_destroy)
@@ -1280,7 +1275,7 @@ end
 
 --- @param message notmuch.Message
 --- @param key string
---- @return number
+--- @return number?
 function M.message_count_properties(message, key)
   local count = ffi.new "unsigned int[1]"
   local ret = nm.notmuch_message_count_properties(message, key, count)
@@ -1301,14 +1296,14 @@ function M.directory_get_mtime(directory)
 end
 
 --- @param directory notmuch.Directory
---- @return notmuch.Filenames
-function M.directry_get_child_files(directory)
+--- @return fun():notmuch.Filenames
+function M.directory_get_child_files(directory)
   local filenames = ffi.gc(nm.notmuch_directory_get_child_files(directory), nm.notmuch_filenames_destroy)
   return filename_iterator(filenames)
 end
 
 --- @param directory notmuch.Directory
---- @return notmuch.Filenames
+--- @return fun():notmuch.Filenames
 function M.directory_get_child_directories(directory)
   local filenames = ffi.gc(nm.notmuch_directory_get_child_directories(directory), nm.notmuch_filenames_destroy)
   return filename_iterator(filenames)
@@ -1406,20 +1401,21 @@ function M.db_get_default_indexopts(db)
   return ffi.gc(nm.notmuch_database_get_default_indexopts(db), nm.notmuch_indexopts_destroy)
 end
 
+local decrypttbl = {
+  flag = 0,
+  ["true"] = 1,
+  ["false"] = 2,
+  ["all"] = 3,
+}
 --- @param indexopts object
 --- @param decrypt_pol string (false, true, auto, nostash)
 function M.indexopts_set_decrypt_policy(indexopts, decrypt_pol)
-  local decrypt = 0
-  if decrypt_pol == "false" then
-    decrypt = 0
-  elseif decrypt_pol == "true" then
-    decrypt = 1
-  elseif decrypt_pol == "auto" then
-    decrypt = 2
-  elseif decrypt_pol == "nostash" then
-    decrypt = 3
+  local decrypt = decrypttbl[decrypt_pol]
+  if decrypt then
+    result(nm.notmuch_indexopts_set_decrypt_policy(indexopts, decrypt))
+  else
+    error(string.format("Decrpytion policy %s doesn't exist", decrypt_pol))
   end
-  result(nm.notmuch_indexopts_set_decrypt_policy(indexopts, decrypt))
 end
 
 --- @param indexopts object

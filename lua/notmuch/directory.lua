@@ -24,7 +24,11 @@ function M:get_child_files()
 end
 
 function M:get_child_directories()
-  return nm.directry_get_child_directories(self.directory)
+  return nm.directory_get_child_directories(self.directory)
+end
+
+function M:delete()
+  return nm.directory_delete(self.directory)
 end
 
 return M
