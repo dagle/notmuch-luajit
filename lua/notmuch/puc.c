@@ -14,6 +14,7 @@
 #define luaL_nm_query(L, n) *(notmuch_query_t **)luaL_checkudata(L, n, "nm_query")
 #define luaL_nm_thread(L, n) *(notmuch_thread_t **)luaL_checkudata(L, n, "nm_thread")
 #define luaL_nm_message(L, n) *(notmuch_message_t **)luaL_checkudata(L, n, "nm_message")
+#define luaL_nm_directory(L, n) *(notmuch_directory_t **)luaL_checkudata(L, n, "nm_directory")
 #define luaL_nm_opts(L, n) *(notmuch_indexopts_t **)luaL_checkudata(L, n, "nm_opts")
 
 #define luaL_nm_newuserdata(type, var) 	notmuch_ ## type ## _t ** type ## ptr = (notmuch_ ## type ## _t **)lua_newuserdata(L, sizeof(notmuch_ ## type ## _t *)); \
@@ -220,7 +221,7 @@ static int db_get_directory(lua_State *L) {
 	int res = notmuch_database_get_directory(db, path, &db_dir);
 	result(res);
 
-	lua_pushlightuserdata(L, db_dir);
+	luaL_nm_newuserdata(directory, db_dir);
 	return 1;
 }
 
@@ -1192,7 +1193,7 @@ static int directory_set_mtime(lua_State *L) {
 	notmuch_directory_t *dir;
 	time_t mtime;
 
-	dir = lua_touserdata(L, 1);
+	dir = luaL_nm_directory(L, 1);
 	mtime = luaL_checknumber(L, 2);
 
 	int res = notmuch_directory_set_mtime(dir, mtime);
@@ -1205,7 +1206,7 @@ static int directory_get_mtime(lua_State *L) {
 	notmuch_directory_t *dir;
 	time_t mtime;
 
-	dir = lua_touserdata(L, 1);
+	dir = luaL_nm_directory(L, 1);
 
 	mtime = notmuch_directory_get_mtime(dir);
 	lua_pushnumber(L, mtime);
@@ -1217,7 +1218,7 @@ static int directry_get_child_files(lua_State *L) {
 	notmuch_directory_t *dir;
 	notmuch_filenames_t *files;
 
-	dir = lua_touserdata(L, 1);
+	dir = luaL_nm_directory(L, 1);
 	files = notmuch_directory_get_child_files(dir);
 
 	lua_pushlightuserdata(L, files);
@@ -1230,7 +1231,7 @@ static int directory_get_child_directories(lua_State *L) {
 	notmuch_directory_t *dir;
 	notmuch_filenames_t *files;
 
-	dir = lua_touserdata(L, 1);
+	dir = luaL_nm_directory(L, 1);
 	files = notmuch_directory_get_child_directories(dir);
 
 	lua_pushlightuserdata(L, files);
@@ -1242,7 +1243,17 @@ static int directory_get_child_directories(lua_State *L) {
 static int directory_delete(lua_State *L) {
 	notmuch_directory_t *dir;
 
-	dir = lua_touserdata(L, 1);
+	dir = luaL_nm_directory(L, 1);
+	int res = notmuch_directory_delete(dir);
+	result(res);
+
+	return 0;
+}
+
+static int directory_destroy(lua_State *L) {
+	notmuch_directory_t *dir;
+
+	dir = luaL_nm_directory(L, 1);
 	int res = notmuch_directory_delete(dir);
 	result(res);
 
@@ -1495,8 +1506,17 @@ struct luaL_Reg nm_db[] =
 	{"reopen", db_reopen},
 	{"create_query", create_query},
 	{"create_query_with_syntax", create_query_with_syntax},
-	{""},
 	{"get_default_indexopts", db_get_default_indexopts},
+	{"config_path", config_path},
+	{"config_get_bool", config_get_bool},
+	{"config_get_pairs", config_get_pairs},
+	{"config_get_values", config_get_values},
+	{"config_get_values_string", config_get_values_string},
+	{"config_set", config_set},
+	{"config_get", config_get},
+	{"get_conf_list", db_get_conf_list},
+	{"get_conf", db_get_conf},
+	{"set_conf", db_set_conf},
 	{ NULL, NULL }
 };
 
@@ -1568,17 +1588,28 @@ struct luaL_Reg nm_message[] =
 	{ NULL, NULL }
 };
 
-
-struct luaL_Reg nm_messages[] =
-{
-	{"__gc", messages_destroy },
-};
+// struct luaL_Reg nm_messages[] =
+// {
+// 	{"__gc", messages_destroy },
+// };
 
 struct luaL_Reg nm_indexopts[] = 
 {
 	{"__gc", indexopts_destroy },
 	{"set_decrypt_policy", indexopts_set_decrypt_policy },
 	{"get_decrypt_policy", indexopts_get_decrypt_policy },
+	{ NULL, NULL }
+};
+
+struct luaL_Reg nm_directory[] =
+{
+	{"__gc", directory_destroy},
+	{"set_mtime", directory_set_mtime},
+	{"get_mtime", directory_get_mtime},
+	{"get_child_files", directry_get_child_files},
+	{"get_child_directories", directory_get_child_directories},
+	{"delete", directory_delete},
+	{ NULL, NULL }
 };
 
 void register_metatable(lua_State *L, luaL_Reg *reg, const char *s) {
@@ -1594,7 +1625,8 @@ int luaopen_notmuch2(lua_State *L){
 	register_metatable(L, nm_thread, "nm_thread");
 	register_metatable(L, nm_message, "nm_message");
 	register_metatable(L, nm_indexopts, "nm_opts");
-	register_metatable(L, nm_messages, "nm_messages");
+	register_metatable(L, nm_directory, "nm_directory");
+	// register_metatable(L, nm_messages, "nm_messages");
 
 	lua_newtable (L);
 	luaL_register (L, NULL, notmuch2);
