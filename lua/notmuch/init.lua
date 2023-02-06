@@ -9,8 +9,6 @@
 -- iterator syntax to go over it. The iterators are not stateless,
 -- because no iterator in notmuch is stateless.
 
--- TODO: map notmuch_config_key_t to strings
-
 local M = {}
 
 local ffi = require "ffi"
@@ -57,7 +55,23 @@ ffi.cdef [[
 		NOTMUCH_SORT_UNSORTED
 	} notmuch_sort_t;
 	typedef int notmuch_message_flag_t;
-	typedef int notmuch_config_key_t;
+  typedef enum {
+    NOTMUCH_CONFIG_FIRST,
+    NOTMUCH_CONFIG_DATABASE_PATH,
+    NOTMUCH_CONFIG_MAIL_ROOT,
+    NOTMUCH_CONFIG_HOOK_DIR,
+    NOTMUCH_CONFIG_BACKUP_DIR,
+    NOTMUCH_CONFIG_EXCLUDE_TAGS,
+    NOTMUCH_CONFIG_NEW_TAGS,
+    NOTMUCH_CONFIG_NEW_IGNORE,
+    NOTMUCH_CONFIG_SYNC_MAILDIR_FLAGS,
+    NOTMUCH_CONFIG_PRIMARY_EMAIL,
+    NOTMUCH_CONFIG_OTHER_EMAIL,
+    NOTMUCH_CONFIG_USER_NAME,
+    NOTMUCH_CONFIG_AUTOCOMMIT,
+    NOTMUCH_CONFIG_EXTRA_HEADERS,
+    NOTMUCH_CONFIG_LAST
+  } notmuch_config_key_t;
 	typedef int notmuch_decryption_policy_t;
 
 	const char *
@@ -1342,26 +1356,59 @@ function M.db_get_conf_list(db, prefix)
   return config_list_iterator(llist)
 end
 
+local keytbl = {
+  first = nm.NOTMUCH_CONFIG_FIRST,
+  database_path = nm.NOTMUCH_CONFIG_DATABASE_PATH,
+  mail_root = nm.NOTMUCH_CONFIG_MAIL_ROOT,
+  hook_dir = nm.NOTMUCH_CONFIG_HOOK_DIR,
+  backup_dir = nm.NOTMUCH_CONFIG_BACKUP_DIR,
+  exclude_tags = nm.NOTMUCH_CONFIG_EXCLUDE_TAGS,
+  new_tags = nm.NOTMUCH_CONFIG_NEW_TAGS,
+  new_ignore = nm.NOTMUCH_CONFIG_NEW_IGNORE,
+  sync_maildir_flags = nm.NOTMUCH_CONFIG_SYNC_MAILDIR_FLAGS,
+  primary_email = nm.NOTMUCH_CONFIG_PRIMARY_EMAIL,
+  other_email = nm.NOTMUCH_CONFIG_OTHER_EMAIL,
+  user_name = nm.NOTMUCH_CONFIG_USER_NAME,
+  autocommit = nm.NOTMUCH_CONFIG_AUTOCOMMIT,
+  extra_headers = nm.NOTMUCH_CONFIG_EXTRA_HEADERS,
+  last = nm.NOTMUCH_CONFIG_LAST
+}
+
 --- @param db notmuch.Db
---- @param key object
+--- @param key string
 --- @return string
 function M.config_get(db, key)
-  return safestr(nm.notmuch_config_get(db, key))
+  local keyt = keytbl[key]
+  if keyt then
+    return safestr(nm.notmuch_config_get(db, keyt))
+  else
+    error(string.format("Key %s doesn't exist", key))
+  end
 end
 
 --- @param db notmuch.Db
 --- @param key object
 --- @param value string
 function M.config_set(db, key, value)
-  result(nm.notmuch_config_set(db, key, value))
+  local keyt = keytbl[key]
+  if keyt then
+    result(nm.notmuch_config_set(db, keyt, value))
+  else
+    error(string.format("Key %s doesn't exist", key))
+  end
 end
 
 --- @param db notmuch.Db
 --- @param key string
 --- @return fun():string
 function M.config_get_values(db, key)
-  local values = ffi.gc(nm.notmuch_config_get_values(db, key), nm.notmuch_config_values_destroy)
-  return value_iterator(values)
+  local keyt = keytbl[key]
+  if keyt then
+    local values = ffi.gc(nm.notmuch_config_get_values(db, keyt), nm.notmuch_config_values_destroy)
+    return value_iterator(values)
+  else
+    error(string.format("Key %s doesn't exist", key))
+  end
 end
 
 --- @param db notmuch.Db
@@ -1371,6 +1418,7 @@ function M.config_get_values_string(db, key)
   local values = ffi.gc(nm.notmuch_config_get_values_string(db, key), nm.notmuch_config_values_destroy)
   return value_iterator(values)
 end
+
 --- @param db notmuch.Db
 --- @param prefix string
 --- @return fun():string, string
@@ -1383,10 +1431,15 @@ end
 --- @param key object
 --- @return boolean
 function M.config_get_bool(db, key)
-  local value = ffi.new "notmuch_bool_t*[1]"
-  local res = nm.notmuch_config_get_bool(db, key, value)
-  result(res)
-  return value[0] ~= 0
+  local keyt = keytbl[key]
+  if keyt then
+    local value = ffi.new "notmuch_bool_t*[1]"
+    local res = nm.notmuch_config_get_bool(db, key, value)
+    result(res)
+    return value[0] ~= 0
+  else
+    error(string.format("Key %s doesn't exist", key))
+  end
 end
 
 --- @param db notmuch.Db
